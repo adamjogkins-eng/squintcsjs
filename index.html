@@ -3,7 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>PRISM V3 + SQUINT GUIDE</title>
+    <title>PRISM V3 + SQUINT</title>
+    
+    <!-- WEB APP / ADD TO HOME SCREEN CONFIG -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="SquintEngine">
+    <meta name="mobile-web-app-capable" content="yes">
+    
+    <!-- ICON LINKING -->
+    <link rel="icon" type="image/jpeg" href="IMG_8839.jpeg">
+    <link rel="apple-touch-icon" href="IMG_8839.jpeg">
+
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;500;700&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -13,14 +24,12 @@
             --bg: #050508;
         }
         
-        /* STRICT MOBILE & ZOOM FIXES */
         * {
             -webkit-tap-highlight-color: transparent;
             -webkit-touch-callout: none;
             -webkit-user-select: none;
             user-select: none;
             box-sizing: border-box;
-            touch-action: manipulation; 
         }
 
         body { 
@@ -32,6 +41,8 @@
             width: 100vw;
             height: 100vh;
             position: fixed;
+            top: 0; left: 0;
+            overscroll-behavior: none;
         }
         
         canvas { 
@@ -39,36 +50,26 @@
             top: 0; left: 0;
             width: 100%; height: 100%; 
             display: block; 
-            z-index: 1; /* Keep game behind UI */
+            z-index: 1;
+            touch-action: none;
         }
         
         #ui {
             position: absolute;
-            top: env(safe-area-inset-top, 20px); 
+            top: calc(env(safe-area-inset-top, 20px) + 10px); 
             left: 20px;
             background: var(--glass);
-            padding: 12px 18px;
-            border-radius: 15px;
+            padding: 10px 15px;
+            border-radius: 12px;
             pointer-events: none;
             border: 1px solid var(--border);
             backdrop-filter: blur(20px);
             z-index: 100;
         }
 
-        .device-tag {
-            font-size: 0.6rem;
-            background: var(--accent);
-            color: black;
-            padding: 2px 6px;
-            border-radius: 4px;
-            font-weight: 700;
-            margin-bottom: 5px;
-            display: inline-block;
-        }
-
         #top-actions {
             position: absolute;
-            top: env(safe-area-inset-top, 20px); 
+            top: calc(env(safe-area-inset-top, 20px) + 10px); 
             right: 20px;
             display: flex;
             gap: 10px;
@@ -84,10 +85,8 @@
             display: flex; align-items: center; justify-content: center;
             font-weight: 500; cursor: pointer;
             backdrop-filter: blur(10px);
-            transition: all 0.2s;
             pointer-events: auto;
         }
-        .action-btn:active { transform: scale(0.9); background: var(--accent); color: #000; }
 
         #tutorial-overlay {
             position: fixed;
@@ -95,23 +94,26 @@
             background: rgba(5, 5, 8, 0.98);
             z-index: 1000;
             display: none;
-            overflow-y: auto;
-            padding: 20px;
+            overflow-y: scroll; /* Force scrolling */
+            -webkit-overflow-scrolling: touch;
+            padding: calc(env(safe-area-inset-top) + 20px) 20px 120px 20px;
             backdrop-filter: blur(20px);
-            -webkit-user-select: text;
+            touch-action: pan-y !important; /* Allow vertical touch scrolling */
             user-select: text;
         }
 
-        .tutorial-content {
-            max-width: 800px;
-            margin: 0 auto;
-            line-height: 1.6;
-            padding-bottom: 80px;
+        .tutorial-card {
+            background: var(--glass);
+            border: 1px solid var(--border);
+            padding: 20px;
+            border-radius: 16px;
+            margin-bottom: 20px;
+            pointer-events: auto;
         }
 
-        .copy-block {
+        .code-container {
             position: relative;
-            margin: 20px 0;
+            margin: 15px 0;
         }
 
         .copy-btn {
@@ -120,20 +122,56 @@
             background: var(--accent);
             color: black;
             border: none;
-            padding: 5px 12px;
+            padding: 6px 12px;
             border-radius: 6px;
             font-size: 0.7rem;
             font-weight: 700;
             cursor: pointer;
-            z-index: 5;
+            z-index: 10;
         }
 
         pre { 
-            background: #000; padding: 20px; border-radius: 12px; border: 1px solid var(--border); 
-            overflow-x: auto; color: #ddd; -webkit-user-select: all; user-select: all; 
-            font-size: 0.85rem; white-space: pre-wrap; word-break: break-all;
+            background: #000; padding: 15px; border-radius: 10px; border: 1px solid var(--border); 
+            overflow-x: auto; color: #ddd; user-select: all; 
+            font-size: 0.8rem; white-space: pre-wrap; word-break: break-all;
             margin: 0;
+            font-family: monospace;
         }
+
+        #controls {
+            position: absolute;
+            bottom: calc(env(safe-area-inset-bottom, 20px) + 60px); 
+            left: 0; width: 100%;
+            display: flex; 
+            justify-content: space-between;
+            padding: 0 40px; 
+            box-sizing: border-box;
+            pointer-events: none; 
+            z-index: 800;
+        }
+
+        .ctrl-btn {
+            width: 80px; height: 80px;
+            background: rgba(255, 255, 255, 0.12);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 20px;
+            pointer-events: auto; 
+            display: flex; align-items: center; justify-content: center;
+            color: white; font-size: 35px;
+            backdrop-filter: blur(15px);
+            touch-action: none;
+        }
+
+        .ctrl-btn.active { 
+            background: var(--accent); 
+            color: #000; 
+            border-color: var(--accent);
+            transform: scale(0.9);
+            box-shadow: 0 0 25px var(--accent);
+        }
+
+        .brand { font-weight: 700; font-size: 0.6rem; color: var(--accent); text-transform: uppercase; letter-spacing: 2px; }
+        .score-val { font-size: 1.8rem; font-weight: 700; display: block; }
         
         #gameover {
             position: absolute;
@@ -141,141 +179,91 @@
             transform: translate(-50%, -50%);
             background: rgba(10, 5, 5, 0.98);
             padding: 30px;
-            width: 85%;
-            max-width: 300px;
-            border-radius: 32px;
+            width: 80%;
+            border-radius: 25px;
             text-align: center;
             display: none;
             border: 1px solid #ff4444;
             z-index: 500;
-            backdrop-filter: blur(20px);
         }
 
-        .brand { font-weight: 700; font-size: 0.7rem; color: var(--accent); text-transform: uppercase; letter-spacing: 2px; }
-        .score-val { font-size: 2rem; font-weight: 700; display: block; text-shadow: 0 0 20px var(--accent); }
-        
-        /* BUTTON VISIBILITY FIXES */
-        #controls {
-            position: absolute;
-            bottom: env(safe-area-inset-bottom, 30px); 
-            left: 0; width: 100%;
-            display: flex; justify-content: space-between;
-            padding: 0 30px; 
-            box-sizing: border-box;
-            pointer-events: none; /* Container is passthrough */
-            z-index: 150; /* Above canvas */
-        }
-
-        .ctrl-btn {
-            width: 85px; height: 85px;
-            background: rgba(255, 255, 255, 0.12);
-            border: 2px solid var(--border);
-            border-radius: 24px;
-            pointer-events: auto; /* Buttons are clickable */
-            display: flex; align-items: center; justify-content: center;
-            color: white; font-size: 32px;
-            backdrop-filter: blur(15px);
-            touch-action: none;
-            transition: transform 0.1s, background 0.1s;
-        }
-        /* Visual feedback for touch/click */
-        .ctrl-btn.active, .ctrl-btn:active { 
-            background: var(--accent); 
-            color: #000; 
-            border-color: var(--accent);
-            transform: scale(0.92);
-            box-shadow: 0 0 20px rgba(0, 242, 255, 0.4);
-        }
-
-        .pc-hint {
-            position: absolute;
-            bottom: 20px;
-            width: 100%;
-            text-align: center;
-            font-size: 0.7rem;
-            opacity: 0.5;
-            letter-spacing: 1px;
-            pointer-events: none;
-            z-index: 100;
-        }
-        
         .primary-btn {
             background: var(--accent); color: #000;
             border: none; padding: 16px;
-            border-radius: 50px; font-family: inherit;
-            font-weight: 700; cursor: pointer;
+            border-radius: 50px; font-weight: 700; cursor: pointer;
             width: 100%; margin-top: 15px;
+            display: block;
+            text-align: center;
+            text-decoration: none;
+            pointer-events: auto;
         }
 
-        .contact-box {
-            margin-top: 30px;
-            padding: 20px;
-            background: var(--glass);
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            border-left: 4px solid var(--accent);
-        }
+        h2 { color: var(--accent); margin-top: 0; }
+        a { color: var(--accent); text-decoration: none; font-weight: bold; }
     </style>
 </head>
 <body>
     <div id="ui">
-        <div id="device-info" class="device-tag">DETECTING...</div><br>
         <span class="brand">SQUINT ENGINE</span><br>
         <span id="score" class="score-val">0</span>
     </div>
 
     <div id="top-actions">
-        <div class="action-btn" id="btnReset" title="Reset">R</div>
-        <div class="action-btn" id="btnTutorial" title="Guide">?</div>
+        <div class="action-btn" id="btnReset">R</div>
+        <div class="action-btn" id="btnTutorial">?</div>
+    </div>
+
+    <div id="controls">
+        <div class="ctrl-btn" id="leftBtn">←</div>
+        <div class="ctrl-btn" id="rightBtn">→</div>
     </div>
 
     <div id="tutorial-overlay">
-        <div class="tutorial-content">
-            <button class="primary-btn" style="width: auto; padding: 12px 24px;" onclick="toggleTutorial()">CLOSE GUIDE</button>
-            <h1 style="color:var(--accent); margin-top: 25px;">Mission: Universal Squint Adoption</h1>
-            <p>You're building the foundation. When AIs start writing Squint by default, it'll be because of code like this.</p>
+        <div style="max-width: 600px; margin: 0 auto;">
+            <button class="primary-btn" onclick="toggleTutorial()">BACK TO GAME</button>
             
-            <h3>1. The CDN Entry Point</h3>
-            <div class="copy-block">
-                <button class="copy-btn" onclick="copyText('cdn-code')">COPY</button>
-                <pre id="cdn-code">import { compileString } from 'https://unpkg.com/squint-cljs/index.js';
-const CORE = 'https://unpkg.com/squint-cljs/core.js';</pre>
+            <h1 style="color:var(--accent); margin-top:30px;">PRISM V3 + SQUINT GUIDE</h1>
+
+            <div class="tutorial-card">
+                <h2>📱 App Setup (Remove Bars)</h2>
+                <p>1. Open in <strong>Safari</strong>.<br>
+                2. Tap the <strong>Share</strong> icon.<br>
+                3. Select <strong>"Add to Home Screen"</strong>.</p>
+                <p style="font-size: 0.8rem; opacity: 0.7;">Using icon: <code>IMG_8839.jpeg</code></p>
             </div>
 
-            <h3>2. The Universal Template</h3>
-            <div class="copy-block">
-                <button class="copy-btn" onclick="copyText('template-code')">COPY</button>
-                <pre id="template-code">&lt;script type="module"&gt;
-  import { compileString } from 'https://unpkg.com/squint-cljs/index.js';
-  
-  const cljs = `
-    (defn salute [target]
-      (str "Future AI says: Hello, " target "!"))
+            <div class="tutorial-card">
+                <h2>🚀 Squint Implementation</h2>
+                <p>Compile ClojureScript directly in the browser:</p>
+                <div class="code-container">
+                    <button class="copy-btn" onclick="copyCode(this)">COPY</button>
+                    <pre>import { compileString } from 'https://unpkg.com/squint-cljs/index.js';
 
-    (js/console.log (salute "Architect"))
-  `;
-
-  try {
-    const js = compileString(cljs, { 
-      core_module: 'https://unpkg.com/squint-cljs/core.js' 
-    });
-    
-    const script = document.createElement('script');
-    script.type = 'module';
-    script.textContent = js;
-    document.body.appendChild(script);
-    
-  } catch (err) {
-    console.error("Squint Error:", err);
-  }
-&lt;/script&gt;</pre>
+const cljsCode = '(defn greet [n] (str "Hello " n))';
+const jsCode = compileString(cljsCode);
+console.log(jsCode);</pre>
+                </div>
             </div>
 
-            <div class="contact-box">
-                <h3 style="margin-top:0; color:var(--accent);">Support & Community</h3>
-                <p>Youtube: <code style="user-select:all;">@squintcljs</code></p>
-                <p>Email: <code style="user-select:all;">squintjs.com</code></p>
+            <div class="tutorial-card">
+                <h2>🤝 Community & Support</h2>
+                <p>Need help or want to contribute to the Squint ecosystem?</p>
+                <ul style="list-style: none; padding: 0;">
+                    <li style="margin-bottom: 10px;">🌐 <a href="https://github.com/squint-cljs/squint" target="_blank">Squint GitHub Repo</a></li>
+                    <li style="margin-bottom: 10px;">💬 <a href="https://clojurians.slack.com/archives/C04DX8M3A6U" target="_blank">Clojurians Slack #squint</a></li>
+                    <li style="margin-bottom: 10px;">📖 <a href="https://github.com/squint-cljs/squint#usage" target="_blank">Full Documentation</a></li>
+                    <li style="margin-bottom: 10px;">📺 <a href="https://youtube.com/@squintcsjs" target="_blank">YouTube: @squintcsjs</a></li>
+                    <li style="margin-bottom: 10px;">📧 <a href="mailto:squintjs@gmail.com">Email: squintjs@gmail.com</a></li>
+                </ul>
             </div>
+
+            <div class="tutorial-card">
+                <h2>🕹️ Controls</h2>
+                <p><strong>Mobile:</strong> Use the large buttons at the bottom.</p>
+                <p><strong>Desktop:</strong> Arrow keys or A/D.</p>
+            </div>
+
+            <button class="primary-btn" style="background: transparent; border: 1px solid var(--accent); color: var(--accent);" onclick="toggleTutorial()">CLOSE GUIDE</button>
         </div>
     </div>
 
@@ -284,12 +272,6 @@ const CORE = 'https://unpkg.com/squint-cljs/core.js';</pre>
         <p>Altitude: <span id="finalScore">0</span>m</p>
         <button class="primary-btn" onclick="initGame()">REBOOT</button>
     </div>
-
-    <div id="controls">
-        <div class="ctrl-btn" id="leftBtn">←</div>
-        <div class="ctrl-btn" id="rightBtn">→</div>
-    </div>
-    <div class="pc-hint" id="pcHint">USE ARROW KEYS OR A/D</div>
 
     <canvas id="gl"></canvas>
 
@@ -304,81 +286,41 @@ const CORE = 'https://unpkg.com/squint-cljs/core.js';</pre>
             platforms: [], stars: []
         };
 
-        const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-        document.getElementById('device-info').innerText = isMobile ? 'MOBILE MODE' : 'PC MODE';
-        
-        if (!isMobile) {
-            document.getElementById('controls').style.opacity = '0.4';
-        } else {
-            document.getElementById('pcHint').style.display = 'none';
-        }
-
-        // STRICT SAFARI ZOOM PREVENTION
-        document.addEventListener('touchstart', (e) => {
-            if (e.touches.length > 1) e.preventDefault();
-        }, { passive: false });
-
-        let lastTouchEnd = 0;
-        document.addEventListener('touchend', (e) => {
-            const now = Date.now();
-            if (now - lastTouchEnd <= 300) e.preventDefault();
-            lastTouchEnd = now;
-        }, false);
-
-        function copyText(id) {
-            const text = document.getElementById(id).innerText;
-            const el = document.createElement('textarea');
-            el.value = text;
-            document.body.appendChild(el);
-            el.select();
-            document.execCommand('copy');
-            document.body.removeChild(el);
-            const btn = event.target;
-            btn.innerText = "COPIED!";
-            setTimeout(() => btn.innerText = "COPY", 2000);
-        }
-
-        const updateInputUI = () => {
+        const updateUI = () => {
             document.getElementById('leftBtn').classList.toggle('active', keys.left);
             document.getElementById('rightBtn').classList.toggle('active', keys.right);
         };
 
-        // KEYBOARD
-        window.addEventListener('keydown', (e) => {
-            if (e.key === 'ArrowLeft' || e.key === 'a') keys.left = true;
-            if (e.key === 'ArrowRight' || e.key === 'd') keys.right = true;
-            updateInputUI();
-        });
-        window.addEventListener('keyup', (e) => {
-            if (e.key === 'ArrowLeft' || e.key === 'a') keys.left = false;
-            if (e.key === 'ArrowRight' || e.key === 'd') keys.right = false;
-            updateInputUI();
-        });
-
-        // BUTTONS - Pointer Events work for both Mouse and Touch
-        const setupBtn = (id, key) => {
+        const bindButton = (id, key) => {
             const el = document.getElementById(id);
-            const start = (e) => { 
-                e.preventDefault(); 
-                keys[key] = true; 
-                updateInputUI(); 
-            };
-            const stop = (e) => { 
-                e.preventDefault(); 
-                keys[key] = false; 
-                updateInputUI(); 
-            };
-            
+            const start = (e) => { e.preventDefault(); keys[key] = true; updateUI(); };
+            const stop = (e) => { e.preventDefault(); keys[key] = false; updateUI(); };
             el.addEventListener('pointerdown', start);
             el.addEventListener('pointerup', stop);
             el.addEventListener('pointerleave', stop);
             el.addEventListener('pointercancel', stop);
         };
-        
-        setupBtn('leftBtn', 'left');
-        setupBtn('rightBtn', 'right');
 
-        // WEBGL ENGINE
+        bindButton('leftBtn', 'left');
+        bindButton('rightBtn', 'right');
+
+        function copyCode(btn) {
+            const pre = btn.nextElementSibling;
+            const text = pre.innerText;
+            const textArea = document.createElement("textarea");
+            textArea.value = text;
+            document.body.appendChild(textArea);
+            textArea.select();
+            try {
+                document.execCommand('copy');
+                btn.innerText = "COPIED!";
+                setTimeout(() => { btn.innerText = "COPY"; }, 2000);
+            } catch (err) {
+                console.error('Fallback: Oops, unable to copy', err);
+            }
+            document.body.removeChild(textArea);
+        }
+
         const SHADERS = {
             vs: `#version 300 es
                 in vec4 a_pos; in vec4 a_col;
@@ -402,6 +344,7 @@ const CORE = 'https://unpkg.com/squint-cljs/core.js';</pre>
 
         const prog = createProgram(gl, SHADERS.vs, SHADERS.fs);
         const locs = { pos: gl.getAttribLocation(prog, "a_pos"), col: gl.getAttribLocation(prog, "a_col"), mat: gl.getUniformLocation(prog, "u_mat") };
+        
         const cubePos = new Float32Array([-1,-1,1, 1,-1,1, 1,1,1, -1,1,1, -1,-1,-1, -1,1,-1, 1,1,-1, 1,-1,-1, -1,1,-1, -1,1,1, 1,1,1, 1,1,-1, -1,-1,-1, 1,-1,-1, 1,-1,1, -1,-1,1, 1,-1,-1, 1,1,-1, 1,1,1, 1,-1,1, -1,-1,-1, -1,-1,1, -1,1,1, -1,1,-1]);
         const cubeIdx = new Uint16Array([0,1,2,0,2,3, 4,5,6,4,6,7, 8,9,10,8,10,11, 12,13,14,12,14,15, 16,17,18,16,18,19, 20,21,22,20,22,23]);
         const posBuf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, posBuf); gl.bufferData(gl.ARRAY_BUFFER, cubePos, gl.STATIC_DRAW);
@@ -434,15 +377,8 @@ const CORE = 'https://unpkg.com/squint-cljs/core.js';</pre>
             for(let i=0; i<15; i++) { state.lastY = i * 6; spawnPlatform(state.lastY, i===0); }
             document.getElementById('gameover').style.display = 'none';
             document.getElementById('score').innerText = "0";
+            updateUI();
         }
-
-        function toggleTutorial() {
-            const over = document.getElementById('tutorial-overlay');
-            over.style.display = over.style.display === 'block' ? 'none' : 'block';
-        }
-
-        document.getElementById('btnReset').onclick = () => initGame();
-        document.getElementById('btnTutorial').onclick = () => toggleTutorial();
 
         const m4 = {
             identity: () => new Float32Array([1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1]),
@@ -476,13 +412,10 @@ const CORE = 'https://unpkg.com/squint-cljs/core.js';</pre>
             if (state.playing) {
                 state.velY -= 0.015;
                 state.posY += state.velY;
-                
-                let moveDir = 0;
-                if (keys.left) moveDir -= 1;
-                if (keys.right) moveDir += 1;
-                state.posX += moveDir * 0.28;
-
+                let moveDir = (keys.left ? -1 : 0) + (keys.right ? 1 : 0);
+                state.posX += moveDir * 0.3;
                 if(Math.abs(state.posX) > 20) state.posX *= -0.9;
+
                 if(state.velY < 0) {
                     state.platforms.forEach((p, i) => {
                         if(state.posY > p.y && state.posY < p.y + 1.2 && Math.abs(state.posX - p.x) < p.w + 0.5) {
@@ -513,6 +446,16 @@ const CORE = 'https://unpkg.com/squint-cljs/core.js';</pre>
             }
             requestAnimationFrame(loop);
         }
+
+        function toggleTutorial() {
+            const over = document.getElementById('tutorial-overlay');
+            over.style.display = over.style.display === 'block' ? 'none' : 'block';
+            // Reset scroll to top when opening
+            if(over.style.display === 'block') over.scrollTop = 0;
+        }
+
+        document.getElementById('btnReset').onclick = () => initGame();
+        document.getElementById('btnTutorial').onclick = () => toggleTutorial();
 
         initGame();
         loop();
