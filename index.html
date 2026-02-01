@@ -13,6 +13,7 @@
             --bg: #050508;
         }
         
+        /* STRICT MOBILE & ZOOM FIXES */
         * {
             -webkit-tap-highlight-color: transparent;
             -webkit-touch-callout: none;
@@ -33,7 +34,13 @@
             position: fixed;
         }
         
-        canvas { width: 100%; height: 100%; display: block; }
+        canvas { 
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%; 
+            display: block; 
+            z-index: 1; /* Keep game behind UI */
+        }
         
         #ui {
             position: absolute;
@@ -45,7 +52,7 @@
             pointer-events: none;
             border: 1px solid var(--border);
             backdrop-filter: blur(20px);
-            z-index: 10;
+            z-index: 100;
         }
 
         .device-tag {
@@ -65,7 +72,7 @@
             right: 20px;
             display: flex;
             gap: 10px;
-            z-index: 300;
+            z-index: 200;
         }
 
         .action-btn {
@@ -93,7 +100,6 @@
             backdrop-filter: blur(20px);
             -webkit-user-select: text;
             user-select: text;
-            touch-action: pan-y;
         }
 
         .tutorial-content {
@@ -141,34 +147,45 @@
             text-align: center;
             display: none;
             border: 1px solid #ff4444;
-            z-index: 100;
+            z-index: 500;
             backdrop-filter: blur(20px);
         }
 
         .brand { font-weight: 700; font-size: 0.7rem; color: var(--accent); text-transform: uppercase; letter-spacing: 2px; }
         .score-val { font-size: 2rem; font-weight: 700; display: block; text-shadow: 0 0 20px var(--accent); }
         
+        /* BUTTON VISIBILITY FIXES */
         #controls {
             position: absolute;
             bottom: env(safe-area-inset-bottom, 30px); 
             left: 0; width: 100%;
             display: flex; justify-content: space-between;
-            padding: 0 30px; box-sizing: border-box;
-            pointer-events: none; z-index: 50;
+            padding: 0 30px; 
+            box-sizing: border-box;
+            pointer-events: none; /* Container is passthrough */
+            z-index: 150; /* Above canvas */
         }
 
         .ctrl-btn {
             width: 85px; height: 85px;
-            background: rgba(255, 255, 255, 0.08);
-            border: 1px solid var(--border);
-            border-radius: 20px;
-            pointer-events: auto;
+            background: rgba(255, 255, 255, 0.12);
+            border: 2px solid var(--border);
+            border-radius: 24px;
+            pointer-events: auto; /* Buttons are clickable */
             display: flex; align-items: center; justify-content: center;
-            color: white; font-size: 28px;
+            color: white; font-size: 32px;
             backdrop-filter: blur(15px);
             touch-action: none;
+            transition: transform 0.1s, background 0.1s;
         }
-        .ctrl-btn.active { background: var(--accent); color: #000; border-color: var(--accent); }
+        /* Visual feedback for touch/click */
+        .ctrl-btn.active, .ctrl-btn:active { 
+            background: var(--accent); 
+            color: #000; 
+            border-color: var(--accent);
+            transform: scale(0.92);
+            box-shadow: 0 0 20px rgba(0, 242, 255, 0.4);
+        }
 
         .pc-hint {
             position: absolute;
@@ -179,6 +196,7 @@
             opacity: 0.5;
             letter-spacing: 1px;
             pointer-events: none;
+            z-index: 100;
         }
         
         .primary-btn {
@@ -214,7 +232,6 @@
     <div id="tutorial-overlay">
         <div class="tutorial-content">
             <button class="primary-btn" style="width: auto; padding: 12px 24px;" onclick="toggleTutorial()">CLOSE GUIDE</button>
-            
             <h1 style="color:var(--accent); margin-top: 25px;">Mission: Universal Squint Adoption</h1>
             <p>You're building the foundation. When AIs start writing Squint by default, it'll be because of code like this.</p>
             
@@ -258,7 +275,6 @@ const CORE = 'https://unpkg.com/squint-cljs/core.js';</pre>
                 <h3 style="margin-top:0; color:var(--accent);">Support & Community</h3>
                 <p>Youtube: <code style="user-select:all;">@squintcljs</code></p>
                 <p>Email: <code style="user-select:all;">squintjs.com</code></p>
-                <p style="font-size: 0.8rem; opacity: 0.7; margin-top: 15px;">Building for the future of AI-driven development.</p>
             </div>
         </div>
     </div>
@@ -290,13 +306,14 @@ const CORE = 'https://unpkg.com/squint-cljs/core.js';</pre>
 
         const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
         document.getElementById('device-info').innerText = isMobile ? 'MOBILE MODE' : 'PC MODE';
+        
         if (!isMobile) {
-            document.getElementById('controls').style.opacity = '0.3';
+            document.getElementById('controls').style.opacity = '0.4';
         } else {
             document.getElementById('pcHint').style.display = 'none';
         }
 
-        // ANTI-ZOOM & MULTI-TOUCH
+        // STRICT SAFARI ZOOM PREVENTION
         document.addEventListener('touchstart', (e) => {
             if (e.touches.length > 1) e.preventDefault();
         }, { passive: false });
@@ -321,35 +338,47 @@ const CORE = 'https://unpkg.com/squint-cljs/core.js';</pre>
             setTimeout(() => btn.innerText = "COPY", 2000);
         }
 
-        const updateInput = () => {
+        const updateInputUI = () => {
             document.getElementById('leftBtn').classList.toggle('active', keys.left);
             document.getElementById('rightBtn').classList.toggle('active', keys.right);
         };
 
+        // KEYBOARD
         window.addEventListener('keydown', (e) => {
             if (e.key === 'ArrowLeft' || e.key === 'a') keys.left = true;
             if (e.key === 'ArrowRight' || e.key === 'd') keys.right = true;
-            updateInput();
+            updateInputUI();
         });
         window.addEventListener('keyup', (e) => {
             if (e.key === 'ArrowLeft' || e.key === 'a') keys.left = false;
             if (e.key === 'ArrowRight' || e.key === 'd') keys.right = false;
-            updateInput();
+            updateInputUI();
         });
 
+        // BUTTONS - Pointer Events work for both Mouse and Touch
         const setupBtn = (id, key) => {
             const el = document.getElementById(id);
-            const start = (e) => { e.preventDefault(); keys[key] = true; updateInput(); };
-            const stop = (e) => { e.preventDefault(); keys[key] = false; updateInput(); };
+            const start = (e) => { 
+                e.preventDefault(); 
+                keys[key] = true; 
+                updateInputUI(); 
+            };
+            const stop = (e) => { 
+                e.preventDefault(); 
+                keys[key] = false; 
+                updateInputUI(); 
+            };
+            
             el.addEventListener('pointerdown', start);
             el.addEventListener('pointerup', stop);
             el.addEventListener('pointerleave', stop);
             el.addEventListener('pointercancel', stop);
         };
+        
         setupBtn('leftBtn', 'left');
         setupBtn('rightBtn', 'right');
 
-        // WEBGL
+        // WEBGL ENGINE
         const SHADERS = {
             vs: `#version 300 es
                 in vec4 a_pos; in vec4 a_col;
